@@ -1,0 +1,143 @@
+diff --git a/src/main.js b/src/main.js
+index 8a83d12..fa400d2 100644
+--- a/src/main.js
++++ b/src/main.js
+@@ -260,6 +260,10 @@ function configureCommandlineSwitchesSync(cliArgs) {
+ 	 */
+ 	app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion');
+ 
++	// Enable visuals for transparent window
++	app.commandLine.appendSwitch('enable-transparent-visuals');
++	app.commandLine.appendSwitch('use-gl', 'desktop');
++
+ 	// Support JS Flags
+ 	const jsFlags = getJSFlags(cliArgs);
+ 	if (jsFlags) {
+diff --git a/src/vs/editor/browser/widget/media/diffEditor.css b/src/vs/editor/browser/widget/media/diffEditor.css
+index 66fa2b5..208468c 100644
+--- a/src/vs/editor/browser/widget/media/diffEditor.css
++++ b/src/vs/editor/browser/widget/media/diffEditor.css
+@@ -13,8 +13,8 @@
+ }
+ 
+ /* colors not externalized: using transparancy on background */
+-.monaco-diff-editor.vs			.diffOverview { background: rgba(0, 0, 0, 0.03); }
+-.monaco-diff-editor.vs-dark		.diffOverview { background: rgba(255, 255, 255, 0.01); }
++.monaco-diff-editor.vs			.diffOverview { background: transparent; }
++.monaco-diff-editor.vs-dark		.diffOverview { background: transparent; }
+ 
+ .monaco-scrollable-element.modified-in-monaco-diff-editor.vs		.scrollbar { background: rgba(0,0,0,0); }
+ .monaco-scrollable-element.modified-in-monaco-diff-editor.vs-dark	.scrollbar { background: rgba(0,0,0,0); }
+diff --git a/src/vs/platform/windows/electron-main/windowImpl.ts b/src/vs/platform/windows/electron-main/windowImpl.ts
+index 71dd706..a34e202 100644
+--- a/src/vs/platform/windows/electron-main/windowImpl.ts
++++ b/src/vs/platform/windows/electron-main/windowImpl.ts
+@@ -244,10 +244,11 @@ export class CodeWindow extends Disposable implements ICodeWindow {
+ 				height: this.windowState.height,
+ 				x: this.windowState.x,
+ 				y: this.windowState.y,
++				transparent: true,
+ 				backgroundColor: this.themeMainService.getBackgroundColor(),
+ 				minWidth: WindowMinimumSize.WIDTH,
+ 				minHeight: WindowMinimumSize.HEIGHT,
+-				show: !isFullscreenOrMaximized, // reduce flicker by showing later
++				show: false,
+ 				title: this.productService.nameLong,
+ 				webPreferences: {
+ 					preload: FileAccess.asFileUri('vs/base/parts/sandbox/electron-browser/preload.js').fsPath,
+@@ -425,9 +426,6 @@ export class CodeWindow extends Disposable implements ICodeWindow {
+ 					this.setFullScreen(true);
+ 				}
+ 
+-				// to reduce flicker from the default window size
+-				// to maximize or fullscreen, we only show after
+-				this._win.show();
+ 				mark('code/didMaximizeCodeWindow');
+ 			}
+ 
+@@ -512,6 +510,9 @@ export class CodeWindow extends Disposable implements ICodeWindow {
+ 
+ 		this.readyState = ReadyState.READY;
+ 
++		// We are ready! Show the window!
++		this._win.show();
++
+ 		// inform all waiting promises that we are ready now
+ 		while (this.whenReadyCallbacks.length) {
+ 			this.whenReadyCallbacks.pop()!(this);
+diff --git a/src/vs/workbench/common/theme.ts b/src/vs/workbench/common/theme.ts
+index 6db644a..bc6d007 100644
+--- a/src/vs/workbench/common/theme.ts
++++ b/src/vs/workbench/common/theme.ts
+@@ -7,21 +7,11 @@ import { localize } from 'vs/nls';
+ import { registerColor, editorBackground, contrastBorder, transparent, editorWidgetBackground, textLinkForeground, lighten, darken, focusBorder, activeContrastBorder, editorWidgetForeground, editorErrorForeground, editorWarningForeground, editorInfoForeground, treeIndentGuidesStroke, errorForeground, listActiveSelectionBackground, listActiveSelectionForeground, editorForeground, toolbarHoverBackground, inputBorder, widgetBorder } from 'vs/platform/theme/common/colorRegistry';
+ import { IColorTheme } from 'vs/platform/theme/common/themeService';
+ import { Color } from 'vs/base/common/color';
+-import { ColorScheme } from 'vs/platform/theme/common/theme';
+ 
+ // < --- Workbench (not customizable) --- >
+ 
+ export function WORKBENCH_BACKGROUND(theme: IColorTheme): Color {
+-	switch (theme.type) {
+-		case ColorScheme.LIGHT:
+-			return Color.fromHex('#F3F3F3');
+-		case ColorScheme.HIGH_CONTRAST_LIGHT:
+-			return Color.fromHex('#FFFFFF');
+-		case ColorScheme.HIGH_CONTRAST_DARK:
+-			return Color.fromHex('#000000');
+-		default:
+-			return Color.fromHex('#252526');
+-	}
++	return Color.transparent
+ }
+ 
+ // < --- Tabs --- >
+@@ -870,6 +860,13 @@ export const NOTIFICATIONS_INFO_ICON_FOREGROUND = registerColor('notificationsIn
+ 	hcLight: editorInfoForeground
+ }, localize('notificationsInfoIconForeground', "The color used for the icon of info notifications. Notifications slide in from the bottom right of the window."));
+ 
++export const WINDOW_BACKGROUND = registerColor('window.background', {
++	dark: '#252526',
++	light: '#F3F3F3',
++	hcDark: '#000000',
++	hcLight: '#FFFFFF'
++}, localize('windowBackground', "The color used for the background of the window."));
++
+ export const WINDOW_ACTIVE_BORDER = registerColor('window.activeBorder', {
+ 	dark: null,
+ 	light: null,
+diff --git a/src/vs/workbench/contrib/splash/browser/partsSplash.ts b/src/vs/workbench/contrib/splash/browser/partsSplash.ts
+index ab5d5e7..a577a74 100644
+--- a/src/vs/workbench/contrib/splash/browser/partsSplash.ts
++++ b/src/vs/workbench/contrib/splash/browser/partsSplash.ts
+@@ -62,13 +62,17 @@ export class PartsSplash {
+ 
+ 	private _savePartsSplash() {
+ 		const theme = this._themeService.getColorTheme();
++		const windowBackground = theme.getColor(themes.WINDOW_BACKGROUND) || Color.transparent;
++		const background = windowBackground.isOpaque() ? windowBackground.transparent(0.99)
++			: windowBackground.isTransparent() ? Color.fromHex('#FFF0')
++				: windowBackground;
+ 
+ 		this._partSplashService.saveWindowSplash({
+ 			zoomLevel: this._configService.getValue<undefined>('window.zoomLevel'),
+ 			baseTheme: getThemeTypeSelector(theme.type),
+ 			colorInfo: {
+ 				foreground: theme.getColor(foreground)?.toString(),
+-				background: Color.Format.CSS.formatHex(theme.getColor(editorBackground) || themes.WORKBENCH_BACKGROUND(theme)),
++				background: Color.Format.CSS.formatRGBA(background),
+ 				editorBackground: theme.getColor(editorBackground)?.toString(),
+ 				titleBarBackground: theme.getColor(themes.TITLE_BAR_ACTIVE_BACKGROUND)?.toString(),
+ 				activityBarBackground: theme.getColor(themes.ACTIVITY_BAR_BACKGROUND)?.toString(),
+diff --git a/src/vs/workbench/contrib/terminal/browser/xterm/xtermTerminal.ts b/src/vs/workbench/contrib/terminal/browser/xterm/xtermTerminal.ts
+index 296c8f2..1b8cebc 100644
+--- a/src/vs/workbench/contrib/terminal/browser/xterm/xtermTerminal.ts
++++ b/src/vs/workbench/contrib/terminal/browser/xterm/xtermTerminal.ts
+@@ -199,6 +199,7 @@ export class XtermTerminal extends DisposableStore implements IXtermTerminal, II
+ 			altClickMovesCursor: config.altClickMovesCursor && editorOptions.multiCursorModifier === 'alt',
+ 			scrollback: config.scrollback,
+ 			theme: this._getXtermTheme(),
++			allowTransparency: true,
+ 			drawBoldTextInBrightColors: config.drawBoldTextInBrightColors,
+ 			fontFamily: font.fontFamily,
+ 			fontWeight: config.fontWeight,
