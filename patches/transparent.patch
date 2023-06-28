@@ -1,9 +1,9 @@
 diff --git a/src/main.js b/src/main.js
-index 8a83d12..fa400d2 100644
+index 5b3bcf8..9eff100 100644
 --- a/src/main.js
 +++ b/src/main.js
-@@ -260,6 +260,10 @@ function configureCommandlineSwitchesSync(cliArgs) {
- 	 */
+@@ -262,6 +262,10 @@ function configureCommandlineSwitchesSync(cliArgs) {
+ 	// `CalculateNativeWinOcclusion` - Disable native window occlusion tracker (https://groups.google.com/a/chromium.org/g/embedder-dev/c/ZF3uHHyWLKw/m/VDN2hDXMAAAJ)
  	app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion');
  
 +	// Enable visuals for transparent window
@@ -29,10 +29,10 @@ index 66fa2b5..208468c 100644
  .monaco-scrollable-element.modified-in-monaco-diff-editor.vs		.scrollbar { background: rgba(0,0,0,0); }
  .monaco-scrollable-element.modified-in-monaco-diff-editor.vs-dark	.scrollbar { background: rgba(0,0,0,0); }
 diff --git a/src/vs/platform/windows/electron-main/windowImpl.ts b/src/vs/platform/windows/electron-main/windowImpl.ts
-index 71dd706..a34e202 100644
+index 089c19b..a2df4c7 100644
 --- a/src/vs/platform/windows/electron-main/windowImpl.ts
 +++ b/src/vs/platform/windows/electron-main/windowImpl.ts
-@@ -244,10 +244,11 @@ export class CodeWindow extends Disposable implements ICodeWindow {
+@@ -214,10 +214,11 @@ export class CodeWindow extends Disposable implements ICodeWindow {
  				height: this.windowState.height,
  				x: this.windowState.x,
  				y: this.windowState.y,
@@ -44,8 +44,8 @@ index 71dd706..a34e202 100644
 +				show: false,
  				title: this.productService.nameLong,
  				webPreferences: {
- 					preload: FileAccess.asFileUri('vs/base/parts/sandbox/electron-browser/preload.js').fsPath,
-@@ -425,9 +426,6 @@ export class CodeWindow extends Disposable implements ICodeWindow {
+ 					preload: FileAccess.asFileUri('vs/base/parts/sandbox/electron-sandbox/preload.js').fsPath,
+@@ -384,9 +385,6 @@ export class CodeWindow extends Disposable implements ICodeWindow {
  					this.setFullScreen(true);
  				}
  
@@ -55,7 +55,7 @@ index 71dd706..a34e202 100644
  				mark('code/didMaximizeCodeWindow');
  			}
  
-@@ -512,6 +510,9 @@ export class CodeWindow extends Disposable implements ICodeWindow {
+@@ -471,6 +469,9 @@ export class CodeWindow extends Disposable implements ICodeWindow {
  
  		this.readyState = ReadyState.READY;
  
@@ -130,10 +130,10 @@ index ab5d5e7..a577a74 100644
  				titleBarBackground: theme.getColor(themes.TITLE_BAR_ACTIVE_BACKGROUND)?.toString(),
  				activityBarBackground: theme.getColor(themes.ACTIVITY_BAR_BACKGROUND)?.toString(),
 diff --git a/src/vs/workbench/contrib/terminal/browser/xterm/xtermTerminal.ts b/src/vs/workbench/contrib/terminal/browser/xterm/xtermTerminal.ts
-index 296c8f2..1b8cebc 100644
+index 3995b60..cc34aed 100644
 --- a/src/vs/workbench/contrib/terminal/browser/xterm/xtermTerminal.ts
 +++ b/src/vs/workbench/contrib/terminal/browser/xterm/xtermTerminal.ts
-@@ -199,6 +199,7 @@ export class XtermTerminal extends DisposableStore implements IXtermTerminal, II
+@@ -203,6 +203,7 @@ export class XtermTerminal extends DisposableStore implements IXtermTerminal, II
  			altClickMovesCursor: config.altClickMovesCursor && editorOptions.multiCursorModifier === 'alt',
  			scrollback: config.scrollback,
  			theme: this._getXtermTheme(),
