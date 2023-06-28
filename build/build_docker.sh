@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 exists() { type -t "$1" > /dev/null 2>&1; }
 

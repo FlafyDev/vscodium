@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ### Windows
 # to run with Bash: "C:\Program Files\Git\bin\bash.exe" ./build/build.sh
