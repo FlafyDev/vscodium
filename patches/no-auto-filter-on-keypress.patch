@@ -1,0 +1,25 @@
+diff --git a/src/vs/workbench/contrib/markers/browser/markersView.ts b/src/vs/workbench/contrib/markers/browser/markersView.ts
+index 1511472..f8bbe86 100644
+--- a/src/vs/workbench/contrib/markers/browser/markersView.ts
++++ b/src/vs/workbench/contrib/markers/browser/markersView.ts
+@@ -33,7 +33,7 @@ import { FilterData, Filter, VirtualDelegate, ResourceMarkersRenderer, MarkerRen
+ import { IContextMenuService } from 'vs/platform/contextview/browser/contextView';
+ import { MenuId } from 'vs/platform/actions/common/actions';
+ import { IKeybindingService } from 'vs/platform/keybinding/common/keybinding';
+-import { StandardKeyboardEvent, IKeyboardEvent } from 'vs/base/browser/keyboardEvent';
++import { IKeyboardEvent } from 'vs/base/browser/keyboardEvent';
+ import { ResourceLabels } from 'vs/workbench/browser/labels';
+ import { IMarkerService, MarkerSeverity } from 'vs/platform/markers/common/markers';
+ import { withUndefinedAsNull } from 'vs/base/common/types';
+@@ -185,11 +185,6 @@ export class MarkersView extends FilterViewPane implements IMarkersView {
+ 		super.renderBody(parent);
+ 
+ 		parent.classList.add('markers-panel');
+-		this._register(dom.addDisposableListener(parent, 'keydown', e => {
+-			if (this.keybindingService.mightProducePrintableCharacter(new StandardKeyboardEvent(e))) {
+-				this.focusFilter();
+-			}
+-		}));
+ 
+ 		const panelContainer = dom.append(parent, dom.$('.markers-panel-container'));
+ 
